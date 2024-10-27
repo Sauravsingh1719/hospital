@@ -2,6 +2,7 @@ import dbConnect from "@/utils/dbConnect";
 import Appointment from "@/model/Appointment";
 import Doctor from "@/model/Doctor";
 import Patient from "@/model/Patient";
+import TemporaryPatient from "@/model/TemporaryPatient"; // Import the TemporaryPatient model
 import { NextResponse } from "next/server";
 import mongoose from "mongoose";
 
@@ -9,7 +10,7 @@ export async function POST(request: Request) {
   await dbConnect();
 
   try {
-    const { patientId, name, phone, doctorId, appointmentDate, timeSlot, paymentMethod } = await request.json();
+    const { name, email, phone, doctorId, appointmentDate, timeSlot, paymentMethod } = await request.json();
 
     // Validate that paymentMethod is provided
     if (!paymentMethod) {
@@ -19,30 +20,22 @@ export async function POST(request: Request) {
       );
     }
 
+    // Check if the user is already a registered patient
+    const existingPatient = await Patient.findOne({ phone });
     let assignedPatientId;
 
-    // Check if patientId is provided
-    if (patientId) {
-      // Convert patientId to ObjectId
-      try {
-        assignedPatientId = new mongoose.Types.ObjectId(patientId);
-      } catch (error) {
-        return NextResponse.json(
-          { success: false, message: "Invalid patient ID format." },
-          { status: 400 }
-        );
-      }
+    if (existingPatient) {
+      assignedPatientId = existingPatient._id;
     } else {
-      // Handle new patient case - add new patient to database
-      const newPatient = new Patient({
+      // Save the temporary patient details
+      const tempPatient = new TemporaryPatient({
         name,
+        email,
         phone,
-        patientId: Math.floor(Math.random() * 1000000), // Generate a simple ID for demo
-        email: "", // Add email if required
-        age: 0, // Adjust as needed
+        appointmentDate,
       });
-      await newPatient.save();
-      assignedPatientId = newPatient._id;
+      await tempPatient.save();
+      assignedPatientId = tempPatient._id; // Use temporary patient ID
     }
 
     // Convert doctorId to ObjectId
@@ -82,7 +75,7 @@ export async function POST(request: Request) {
       doctorId: doctor._id,
       appointmentDate,
       timeSlot,
-      paymentMethod, // Add paymentMethod here
+      paymentMethod,
     });
 
     await newAppointment.save();

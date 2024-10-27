@@ -21,20 +21,33 @@ export async function GET(request: Request, {params}: {params: {id: string}}){
 }
 
 
-export async function PUT(request: Request, {params }: {params: {id: string}}) {
+export async function PUT(request: Request, { params }: { params: { id: string } }) {
     await dbConnect();
 
     try {
-        const {id} = params;
-        const updatedData = await request.json();
-        const doctor = await Doctor.findByIdAndUpdate(new mongoose.Types.ObjectId(id), updatedData,{ new: true});
-        if(!doctor){
-            return NextResponse.json({success: false, message: "Doctor not found."}, {status: 404});
+        const { fee, availability, department } = await request.json();
+
+        const updatedDoctor = await Doctor.findByIdAndUpdate(
+            params.id,
+            { fee, availability, department },
+            { new: true }
+        );
+
+        if (!updatedDoctor) {
+            return NextResponse.json({ success: false, message: "Doctor not found." }, { status: 404 });
         }
-        return NextResponse.json ({success: true, data: doctor}, {status: 200});
+
+        return NextResponse.json({
+            success: true,
+            message: "Doctor updated successfully.",
+            data: updatedDoctor,
+        });
     } catch (error) {
         console.error("Error updating doctor:", error);
-        return NextResponse.json({success: false, message: "Failed to update Doctor."}, {status: 500})
+        return NextResponse.json({
+            success: false,
+            message: "Failed to update doctor.",
+        }, { status: 500 });
     }
 }
 
