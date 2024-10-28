@@ -8,7 +8,7 @@ export async function GET(request: Request, {params}: {params: {id:string}}){
     await dbConnect();
 
     try {
-        const {id} = params;
+        const {id} = await params;
         const patient = await Patient.findById( new mongoose.Types.ObjectId(id));
         if(!patient) {
             return NextResponse.json({success: false, message: "Patient not found"}, {status: 404});
@@ -54,7 +54,7 @@ export async function DELETE(request: Request, { params }: { params: { id: strin
     await dbConnect();
   
     try {
-      const { id } = params;
+      const { id } = await params;
       const patient = await Patient.findByIdAndDelete(new mongoose.Types.ObjectId(id));
       if (!patient) {
         return NextResponse.json({ success: false, message: "Patient not found." }, { status: 404 });

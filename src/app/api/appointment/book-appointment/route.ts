@@ -10,7 +10,7 @@ export async function POST(request: Request) {
   await dbConnect();
 
   try {
-    const { name, email, phone, doctorId, appointmentDate, timeSlot, paymentMethod } = await request.json();
+    const { name, email, phone, doctorId, doctorName, appointmentDate, timeSlot, paymentMethod } = await request.json();
 
     // Validate that paymentMethod is provided
     if (!paymentMethod) {
@@ -23,20 +23,6 @@ export async function POST(request: Request) {
     // Check if the user is already a registered patient
     const existingPatient = await Patient.findOne({ phone });
     let assignedPatientId;
-
-    if (existingPatient) {
-      assignedPatientId = existingPatient._id;
-    } else {
-      // Save the temporary patient details
-      const tempPatient = new TemporaryPatient({
-        name,
-        email,
-        phone,
-        appointmentDate,
-      });
-      await tempPatient.save();
-      assignedPatientId = tempPatient._id; // Use temporary patient ID
-    }
 
     // Convert doctorId to ObjectId
     let doctorObjectId;
@@ -67,12 +53,31 @@ export async function POST(request: Request) {
       );
     }
 
+    
+    if (existingPatient) {
+      assignedPatientId = existingPatient._id;
+    } else {
+      
+      const tempPatient = new TemporaryPatient({
+        name,
+        email,
+        phone,
+        doctorId,
+        appointmentDate,
+        doctorName: doctor.name, // Ensure to pass doctor name
+        timeSlot: timeSlot, // Ensure to pass time slot
+    });
+    await tempPatient.save();
+      assignedPatientId = tempPatient._id; // Use temporary patient ID
+    }
+
     // Create new appointment
     const newAppointment = new Appointment({
       patientId: assignedPatientId,
       name,
       phone,
       doctorId: doctor._id,
+      doctorName: doctor.name,
       appointmentDate,
       timeSlot,
       paymentMethod,
